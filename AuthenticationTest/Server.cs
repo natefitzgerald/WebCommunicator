@@ -28,7 +28,7 @@ namespace AuthenticationTest
         private RandomNumberGenerator rng = new RNGCryptoServiceProvider();
         private BinaryFormatter binForm = new BinaryFormatter();
         private RSAParameters pubkey;
-        private RSAParameters privkey;
+        private RSAParameters privkey = new RSAParameters();
         private int port = 0;
         private Task listenTask;
         private CancellationTokenSource cancel = new CancellationTokenSource();
@@ -60,11 +60,9 @@ namespace AuthenticationTest
             port = Int32.Parse(context.Request.Headers["port"]);
             
             Stream s = context.Request.InputStream;
-            try
-            {
-                pubkey = (RSAParameters)binForm.Deserialize(s);
-            }
-            catch (Exception e) { Console.WriteLine(e.Message); }
+
+            pubkey = (RSAParameters)binForm.Deserialize(s);
+
             ReceiveObject += new ReceiveData(Receive);
             listener = new HttpListener();
             string addr = baseURL + ":" + port + "/";
@@ -78,7 +76,7 @@ namespace AuthenticationTest
             state = STATE.OPEN;
             while (!cancel.IsCancellationRequested)
             {
-                var newContext = listener.GetContextAsync().Result;
+                var newContext = listener.GetContext();
                 ReceiveObject(newContext);
             }
         }
@@ -95,15 +93,7 @@ namespace AuthenticationTest
             Stream s = new MemoryStream(buf);
             received.Add(binForm.Deserialize(s));
         }
-        
-
-        private void SelectPort()
-        {
-            byte[] p = new byte[2];
-            rng.GetBytes(p);
-            port = BitConverter.ToInt16(p, 0);
-            if (port < 1000) port += 1000;
-        }
+    
 
         private void Initialize()
         {
